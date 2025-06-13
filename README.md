@@ -31,6 +31,24 @@ A Python tool that uses AI to translate Excel files while preserving formatting.
    LLM_MODEL_NAME=your_model_name
    ```
 
+   Examples:
+   ```
+   *Gemini*
+   LLM_API_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+   LLM_API_KEY=
+   LLM_MODEL_NAME=gemini-2.0-flash-lite
+   LLM_MODEL_SUFFIX=
+
+   *Locally with LM Studio*
+   LLM_API_URL=http://localhost:1234/v1/
+   LLM_API_KEY=lm-studio
+   LLM_MODEL_NAME=qwen3-1.7b
+   LLM_MODEL_NO_THINK=1
+   LLM_MODEL_SUFFIX=/no_think
+
+   ...
+   ```
+
 ## Usage
 
 1. Place your Excel files in the `input` directory
