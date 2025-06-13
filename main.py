@@ -14,7 +14,7 @@ def check_and_install_dependencies():
     try:
         # Display message about requirements
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        req_file = os.path.join(script_dir, "trans-excel-requirements.txt")
+        req_file = os.path.join(script_dir, "requirements.txt")
         
         if not os.path.exists(req_file):
             print("⚠️ Requirements file not found, creating file...")
@@ -40,8 +40,8 @@ def check_and_install_dependencies():
         return False
 
 # Check libraries before executing main code
-if not check_and_install_dependencies():
-    exit(1)
+# if not check_and_install_dependencies():
+#     exit(1)
 
 # Import libraries after checking
 import xlwings as xw
@@ -110,7 +110,7 @@ def translate_batch(texts, target_lang="ja"):
 
     # Read system prompt from file
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    prompt_file = os.path.join(script_dir, "trans-excel-system-prompt.txt")
+    prompt_file = os.path.join(script_dir, "system-prompt.txt")
     
     # Check if the prompt file exists
     if os.path.exists(prompt_file):
