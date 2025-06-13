@@ -63,12 +63,6 @@ lang_map = {
     'en': 'English',
 }
 
-lang_dir_map = {
-    "ja": "Vietnamese to Japanese",
-    "vi": "Japanese to Vietnamese",
-    "en": "Japanese to English",
-}
-
 llm_model_no_think = False
 if temp := os.getenv("LLM_MODEL_NO_THINK"):
     if temp.lower() in ["1", "true"]:
@@ -103,7 +97,7 @@ def should_translate(text):
         return False
     return True
 
-def translate_batch(texts, target_lang="ja"):
+def translate_batch(texts, source_lang="ja", target_lang="en"):
     """Translate a batch of texts to the target language (Japanese or Vietnamese or English)"""
     if not texts:
         return []
@@ -137,13 +131,14 @@ def translate_batch(texts, target_lang="ja"):
     separator = "|||"
     combined_text = separator.join(texts)
 
-    # Determine translation direction based on parameter
-    lang_dir = lang_dir_map.get(target_lang, None)
-    if not lang_dir:
-        print(f"❌ Unknown target language: {target_lang}")
+    # Get translation direction
+    source = lang_map.get(source_lang)
+    target = lang_map.get(target_lang)
+    if not source or not target:
+        print(f"❌ Invalid language combination: from {source_lang} to {target_lang}")
         return texts
 
-    user_prompt = f"Translate the following text from {lang_dir}, keeping segments separated by '{separator}':\n\n{combined_text}"
+    user_prompt = f"Translate the following text from {source} to {target}, keeping segments separated by '{separator}':\n\n{combined_text}"
 
     if llm_model_suffix := os.getenv("LLM_MODEL_SUFFIX"):
         user_prompt += "\n"
@@ -185,7 +180,7 @@ def translate_batch(texts, target_lang="ja"):
         # Return original texts if translation fails
         return texts
 
-def process_excel(input_path, target_lang="ja"):
+def process_excel(input_path, source_lang="ja", target_lang="en"):
     """Process Excel file: read, translate and save with original format"""
     try:
         # Create output file path
@@ -321,7 +316,7 @@ def process_excel(input_path, target_lang="ja"):
                     print(f"   🔄 Translating batch {current_batch_num}/{total_batches} ({len(batch_texts)} texts)")
 
                     # Translate batch
-                    translated_batch = translate_batch(batch_texts, target_lang)
+                    translated_batch = translate_batch(batch_texts, source_lang, target_lang)
 
                     # Update translated content
                     print(f"   ✍️ Updating content for batch {current_batch_num}...")
@@ -438,7 +433,7 @@ def process_excel(input_path, target_lang="ja"):
             app.quit()
         return None
 
-def process_directory(input_dir, target_lang="ja"):
+def process_directory(input_dir, source_lang="ja", target_lang="en"):
     """Process all Excel files in the input directory"""
     # Ensure directory path exists
     if not os.path.isdir(input_dir):
@@ -464,7 +459,7 @@ def process_directory(input_dir, target_lang="ja"):
             print(f"   ⏩ Skipping temporary file: {os.path.basename(file_path)}")
             continue
 
-        output_file = process_excel(file_path, target_lang)
+        output_file = process_excel(file_path, source_lang, target_lang)
         if output_file:
             successful_files.append(os.path.basename(file_path))
         else:
@@ -477,8 +472,10 @@ def process_directory(input_dir, target_lang="ja"):
 
 def main():
     parser = argparse.ArgumentParser(description='Translate Excel files from input directory to output directory')
-    parser.add_argument('--to', choices=lang_map.keys(), default='ja',
-                        help='Target language (ja: Japanese, vi: Vietnamese, en: English). Default: ja')
+    parser.add_argument('--from', dest='source_lang', choices=lang_map.keys(), default='ja',
+                        help='Source language (ja: Japanese, vi: Vietnamese, en: English). Default: ja')
+    parser.add_argument('--to', dest='target_lang', choices=lang_map.keys(), default='en',
+                        help='Target language (ja: Japanese, vi: Vietnamese, en: English). Default: en')
     args = parser.parse_args()
 
     # Path to input directory (in current project directory)
@@ -497,14 +494,16 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     print(f"📂 Output directory: {output_dir}")
 
-    target_lang = lang_map.get(args.to, None)
-    if not target_lang:
-        print(f"❌ Unknown target language: {args.to}")
+    source_lang = lang_map.get(args.source_lang)
+    target_lang = lang_map.get(args.target_lang)
+    if not source_lang or not target_lang:
+        print(f"❌ Invalid language combination: from {args.source_lang} to {args.target_lang}")
         return
-    # print(f"🎯 Target language: {target_lang}")
+
+    print(f"🎯 Translation direction: {source_lang} to {target_lang}")
 
     # Process all files in the input directory
-    process_directory(input_dir, args.to)
+    process_directory(input_dir, args.source_lang, args.target_lang)
 
 if __name__ == "__main__":
     # Note: Running this script may take time depending on the number of files and text to translate
