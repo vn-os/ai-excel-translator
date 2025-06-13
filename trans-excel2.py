@@ -51,11 +51,30 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+llm_api = {
+    "url": os.getenv("LLM_API_URL"),
+    "api_key": os.getenv("LLM_API_KEY"),
+    "model": os.getenv("LLM_MODEL_NAME"),
+}
+
+lang_map = {
+    'ja': 'Japanese',
+    'vi': 'Vietnamese',
+    'en': 'English',
+}
+
+lang_dir_map = {
+    "ja": "Vietnamese to Japanese",
+    "vi": "Japanese to Vietnamese",
+    "en": "Japanese to English",
+}
+
 # Initialize API client with Gemini (OpenAI compatible)
 client = OpenAI(
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-    api_key=os.getenv("GEMINI_API_KEY"),
+    base_url=llm_api["url"],
+    api_key=llm_api["api_key"],
 )
+print(f"🤖 Using LLM model: '{llm_api['model']}' at '{llm_api['url']}'")
 
 # Set API delay and batch size
 API_DELAY = 2  # Delay 2 seconds between API calls
@@ -80,7 +99,7 @@ def should_translate(text):
     return True
 
 def translate_batch(texts, target_lang="ja"):
-    """Translate a batch of texts to the target language (Japanese or Vietnamese)"""
+    """Translate a batch of texts to the target language (Japanese or Vietnamese or English)"""
     if not texts:
         return []
 
@@ -114,13 +133,21 @@ def translate_batch(texts, target_lang="ja"):
     combined_text = separator.join(texts)
 
     # Determine translation direction based on parameter
-    direction = "Vietnamese to Japanese" if target_lang == "ja" else "Japanese to Vietnamese"
-    user_prompt = f"Translate the following text from {direction}, keeping segments separated by '{separator}':\n\n{combined_text}"
+    lang_dir = lang_dir_map.get(target_lang, None)
+    if not lang_dir:
+        print(f"❌ Unknown target language: {target_lang}")
+        return texts
+
+    user_prompt = f"Translate the following text from {lang_dir}, keeping segments separated by '{separator}':\n\n{combined_text}"
+
+    if llm_model_suffix := os.getenv("LLM_MODEL_SUFFIX"):
+        user_prompt += "\n"
+        user_prompt += llm_model_suffix
 
     try:
         # Call translation API
         response = client.chat.completions.create(
-            model="gemini-2.0-flash-lite", # Or "gemini-pro" or other suitable model
+            model=llm_api["model"], # Or "gemini-pro" or other suitable model
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -160,7 +187,7 @@ def process_excel(input_path, target_lang="ja"):
         project_dir = os.path.dirname(os.path.abspath(__file__))
         output_dir = os.path.join(project_dir, "output")
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, f"{base_name}-translated{ext}")
+        output_path = os.path.join(output_dir, f"{base_name}-{target_lang}{ext}")
 
         print(f"\n🔄 Processing file: {filename}")
 
@@ -441,8 +468,8 @@ def process_directory(input_dir, target_lang="ja"):
 
 def main():
     parser = argparse.ArgumentParser(description='Translate Excel files from input directory to output directory')
-    parser.add_argument('--to', choices=['ja', 'vi'], default='ja',
-                        help='Target language (ja: Japanese, vi: Vietnamese). Default: ja')
+    parser.add_argument('--to', choices=lang_map.keys(), default='ja',
+                        help='Target language (ja: Japanese, vi: Vietnamese, en: English). Default: ja')
     args = parser.parse_args()
 
     # Path to input directory (in current project directory)
@@ -461,8 +488,12 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     print(f"📂 Output directory: {output_dir}")
 
+    target_lang = lang_map.get(args.to, None)
+    if not target_lang:
+        print(f"❌ Unknown target language: {args.to}")
+        return
+    # print(f"🎯 Target language: {target_lang}")
 
-    print(f"🎯 Target language: {'Japanese' if args.to == 'ja' else 'Vietnamese'}")
     # Process all files in the input directory
     process_directory(input_dir, args.to)
 
