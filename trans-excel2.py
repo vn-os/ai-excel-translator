@@ -69,6 +69,11 @@ lang_dir_map = {
     "en": "Japanese to English",
 }
 
+llm_model_no_think = False
+if temp := os.getenv("LLM_MODEL_NO_THINK"):
+    if temp.lower() in ["1", "true"]:
+        llm_model_no_think = True
+
 # Initialize API client with Gemini (OpenAI compatible)
 client = OpenAI(
     base_url=llm_api["url"],
@@ -156,6 +161,10 @@ def translate_batch(texts, target_lang="ja"):
 
         # Split translation result into separate parts
         translated_text = response.choices[0].message.content
+
+        if llm_model_no_think:
+            translated_text = re.sub(r'<think>.*?</think>\n*', '', translated_text, flags=re.DOTALL)
+
         translated_parts = translated_text.split(separator)
 
         # Handle case when number of translated parts doesn't match
