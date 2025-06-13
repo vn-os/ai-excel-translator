@@ -51,6 +51,13 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Set proxy environment variables if they exist
+if http_proxy := os.environ.get("HTTP_PROXY"):
+    os.environ["http_proxy"] = http_proxy
+if https_proxy := os.environ.get("HTTPS_PROXY"):
+    os.environ["https_proxy"] = https_proxy
+os.environ["no_proxy"] = "127.0.0.1,localhost,.local"
+
 llm_api = {
     "url": os.getenv("LLM_API_URL"),
     "api_key": os.getenv("LLM_API_KEY"),
