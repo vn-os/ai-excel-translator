@@ -67,6 +67,23 @@ Default settings:
 - Source language: Japanese (ja)
 - Target language: English (en)
 
+## Supported Languages
+
+The script supports translation between the following languages:
+
+| Code | Language    | Code | Language     |
+|------|-------------|------|--------------|
+| en   | English     | ko   | Korean       |
+| zh   | Chinese     | id   | Indonesian   |
+| hi   | Hindi       | fr   | French       |
+| es   | Spanish     | de   | German       |
+| ar   | Arabic      | tr   | Turkish      |
+| bn   | Bengali     | it   | Italian      |
+| pt   | Portuguese  | th   | Thai         |
+| ru   | Russian     | pl   | Polish       |
+| ja   | Japanese    | uk   | Ukrainian    |
+| vi   | Vietnamese  | nl   | Dutch        |
+
 ## API Performance Customization
 
 The default configuration is set to work with most LLM APIs. You can customize these settings based on your API provider and model:
@@ -143,3 +160,26 @@ If you encounter errors:
 1. Check if the API key is correctly set up in the .env file
 2. Ensure all dependent libraries are installed
 3. Check file and directory access permissions
+
+## Usage
+
+1. Place your Excel files in the `input` directory
+2. Run the script with source and target language codes:
+
+```bash
+python main.py --from <source_lang> --to <target_lang>
+```
+
+For example:
+```bash
+# Translate from Japanese to English
+python main.py --from ja --to en
+
+# Translate from English to Vietnamese
+python main.py --from en --to vi
+
+# Translate from Chinese to Spanish
+python main.py --from zh --to es
+```
+
+The translated files will be saved in the `output` directory with the target language code appended to the filename.

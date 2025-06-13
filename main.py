@@ -58,9 +58,26 @@ llm_api = {
 }
 
 lang_map = {
-    'ja': 'Japanese',
-    'vi': 'Vietnamese',
-    'en': 'English',
+    'en': 'English',      # Most widely spoken language
+    'zh': 'Chinese',      # Mandarin Chinese
+    'hi': 'Hindi',        # Hindi
+    'es': 'Spanish',      # Spanish
+    'ar': 'Arabic',       # Arabic
+    'bn': 'Bengali',      # Bengali
+    'pt': 'Portuguese',   # Portuguese
+    'ru': 'Russian',      # Russian
+    'ja': 'Japanese',     # Japanese
+    'vi': 'Vietnamese',   # Vietnamese
+    'ko': 'Korean',       # Korean
+    'id': 'Indonesian',   # Indonesian
+    'fr': 'French',       # French
+    'de': 'German',       # German
+    'tr': 'Turkish',      # Turkish
+    'it': 'Italian',      # Italian
+    'th': 'Thai',         # Thai
+    'pl': 'Polish',       # Polish
+    'uk': 'Ukrainian',    # Ukrainian
+    'nl': 'Dutch',        # Dutch
 }
 
 llm_model_no_think = False
@@ -97,8 +114,8 @@ def should_translate(text):
         return False
     return True
 
-def translate_batch(texts, source_lang="ja", target_lang="en"):
-    """Translate a batch of texts to the target language (Japanese or Vietnamese or English)"""
+def translate_batch(texts, source_lang, target_lang):
+    """Translate a batch of texts to the target language"""
     if not texts:
         return []
 
@@ -180,7 +197,7 @@ def translate_batch(texts, source_lang="ja", target_lang="en"):
         # Return original texts if translation fails
         return texts
 
-def process_excel(input_path, source_lang="ja", target_lang="en"):
+def process_excel(input_path, source_lang, target_lang):
     """Process Excel file: read, translate and save with original format"""
     try:
         # Create output file path
@@ -433,7 +450,7 @@ def process_excel(input_path, source_lang="ja", target_lang="en"):
             app.quit()
         return None
 
-def process_directory(input_dir, source_lang="ja", target_lang="en"):
+def process_directory(input_dir, source_lang, target_lang):
     """Process all Excel files in the input directory"""
     # Ensure directory path exists
     if not os.path.isdir(input_dir):
@@ -471,11 +488,14 @@ def process_directory(input_dir, source_lang="ja", target_lang="en"):
         print(f"❌ Failed: {len(failed_files)} files: {', '.join(failed_files)}")
 
 def main():
+    # Create language help text dynamically
+    lang_help = ', '.join(f"{code}: {name}" for code, name in lang_map.items())
+    
     parser = argparse.ArgumentParser(description='Translate Excel files from input directory to output directory')
-    parser.add_argument('--from', dest='source_lang', choices=lang_map.keys(), default='ja',
-                        help='Source language (ja: Japanese, vi: Vietnamese, en: English). Default: ja')
-    parser.add_argument('--to', dest='target_lang', choices=lang_map.keys(), default='en',
-                        help='Target language (ja: Japanese, vi: Vietnamese, en: English). Default: en')
+    parser.add_argument('--from', dest='source_lang', choices=lang_map.keys(), required=True,
+                        help=f'Source language ({lang_help})')
+    parser.add_argument('--to', dest='target_lang', choices=lang_map.keys(), required=True,
+                        help=f'Target language ({lang_help})')
     args = parser.parse_args()
 
     # Path to input directory (in current project directory)
