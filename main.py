@@ -449,14 +449,17 @@ def process_directory(input_dir, source_lang, target_lang):
     if failed_files:
         print(f"❌ Failed: {len(failed_files)} files: {', '.join(failed_files)}")
 
+from gooey import Gooey
+
+@Gooey
 def main():
     # Create language help text dynamically
     lang_help = ', '.join(f"{code}: {name}" for code, name in lang_map.items())
     
     parser = argparse.ArgumentParser(description='Translate Excel files from input directory to output directory')
-    parser.add_argument('--from', dest='source_lang', choices=lang_map.keys(), required=True,
+    parser.add_argument('--from', dest='source_lang', choices=lang_map.keys(), required=True, default="ja",
                         help=f'Source language ({lang_help})')
-    parser.add_argument('--to', dest='target_lang', choices=lang_map.keys(), required=True,
+    parser.add_argument('--to', dest='target_lang', choices=lang_map.keys(), required=True, default="en",
                         help=f'Target language ({lang_help})')
     args = parser.parse_args()
 
