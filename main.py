@@ -144,7 +144,7 @@ def translate_batch(texts, source_lang, target_lang):
 
         # Handle case when number of translated parts doesn't match
         if len(translated_parts) != len(texts):
-            print(f"   ⚠️  Number of translated parts ({len(translated_parts)}) does not match number of original texts ({len(texts)})")
+            print(f"   ⚠️ Number of translated parts ({len(translated_parts)}) does not match number of original texts ({len(texts)})")
             # Ensure number of translated parts equals number of original texts
             if len(translated_parts) < len(texts):
                 translated_parts.extend(texts[len(translated_parts):])
@@ -299,7 +299,7 @@ def process_excel(input_path, source_lang, target_lang):
                     translated_batch = translate_batch(batch_texts, source_lang, target_lang)
 
                     # Update translated content
-                    print(f"   ✍️  Updating content for batch {current_batch_num}...")
+                    print(f"   ✍️ Updating content for batch {current_batch_num}...")
                     for j, ref in enumerate(batch_refs):
                         # Check if index j is within translated_batch
                         if j < len(translated_batch) and translated_batch[j] is not None:
@@ -495,4 +495,4 @@ if __name__ == "__main__":
     start_time = time.time()
     main()
     end_time = time.time()
-    print(f"\n⏱️  Total execution time: {end_time - start_time:.2f} seconds")
+    print(f"\n⏱️ Total execution time: {end_time - start_time:.2f} seconds")
