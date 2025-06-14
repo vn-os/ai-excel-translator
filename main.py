@@ -1,49 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import os
 import time
 import argparse
-import json
 import re
 import glob
-from pathlib import Path
-
-# Check and install required dependencies
-def check_and_install_dependencies():
-    try:
-        # Display message about requirements
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        req_file = os.path.join(script_dir, "requirements.txt")
-        
-        if not os.path.exists(req_file):
-            print("⚠️ Requirements file not found, creating file...")
-            with open(req_file, 'w', encoding='utf-8') as f:
-                f.write("openai>=1.0.0\nxlwings>=0.30.0\npython-dotenv>=1.0.0\npathlib>=1.0.1")
-            print(f"✅ Requirements file created at: {req_file}")
-        
-        print(f"📋 To install required libraries, run the command:\npip install -r {req_file}")
-        
-        # Continue importing required libraries
-        try:
-            import xlwings as xw
-            from openai import OpenAI
-            from dotenv import load_dotenv
-            print("✅ All required libraries loaded successfully.")
-            return True
-        except ImportError as e:
-            print(f"❌ Error importing library: {str(e)}")
-            print("Please install the required libraries and try again.")
-            return False
-    except Exception as e:
-        print(f"❌ Error checking libraries: {str(e)}")
-        return False
-
-# Check libraries before executing main code
-# if not check_and_install_dependencies():
-#     exit(1)
-
-# Import libraries after checking
 import xlwings as xw
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -63,6 +22,11 @@ llm_api = {
     "api_key": os.getenv("LLM_API_KEY"),
     "model": os.getenv("LLM_MODEL_NAME"),
 }
+
+llm_model_no_think = False
+if temp := os.getenv("LLM_MODEL_NO_THINK"):
+    if temp.lower() in ["1", "true"]:
+        llm_model_no_think = True
 
 lang_map = {
     'en': 'English',      # Most widely spoken language
@@ -87,10 +51,28 @@ lang_map = {
     'nl': 'Dutch',        # Dutch
 }
 
-llm_model_no_think = False
-if temp := os.getenv("LLM_MODEL_NO_THINK"):
-    if temp.lower() in ["1", "true"]:
-        llm_model_no_think = True
+separator = "¦¦¦"
+
+system_prompt = f"""
+You are a professional IT translator specializing in software development, programming, and technical documentation. Follow these rules strictly:
+
+1. Output ONLY the translation, nothing else
+2. DO NOT include the original text in your response
+3. DO NOT add any explanations or notes
+4. Keep IDs, model numbers, and special characters unchanged
+5. Use standard terminology for technical terms in IT and software development
+6. Preserve the original formatting (spaces, line breaks)
+7. Use proper grammar and punctuation
+8. Only keep unchanged: proper names, IDs, and technical codes
+9. Translate all segments separated by "{separator}" and keep them separated with the same delimiter
+
+For IT-specific terminology:
+- Maintain consistency in technical terms
+- Keep programming language keywords, function names, and variable names unchanged
+- Use industry-standard translations for common IT concepts
+- Preserve acronyms like API, UI, UX, SQL, HTML, CSS, etc.
+- Keep file extensions and paths unchanged
+"""
 
 # Initialize API client with Gemini (OpenAI compatible)
 client = OpenAI(
@@ -126,33 +108,7 @@ def translate_batch(texts, source_lang, target_lang):
     if not texts:
         return []
 
-    # Read system prompt from file
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    prompt_file = os.path.join(script_dir, "system-prompt.txt")
-    
-    # Check if the prompt file exists
-    if os.path.exists(prompt_file):
-        with open(prompt_file, 'r', encoding='utf-8') as f:
-            system_prompt = f.read()
-    else:
-        # Use default prompt if file doesn't exist
-        system_prompt = """You are a professional translator. Follow these rules strictly:
-1. Output ONLY the translation, nothing else
-2. DO NOT include the original text in your response
-3. DO NOT add any explanations or notes
-4. Keep IDs, model numbers, and special characters unchanged
-5. Use standard terminology for technical terms
-6. Preserve the original formatting (spaces, line breaks)
-7. Use proper grammar and punctuation
-8. Only keep unchanged: proper names, IDs, and technical codes
-9. Translate all segments separated by "|||" and keep them separated with the same delimiter"""
-        # Create default prompt file
-        with open(prompt_file, 'w', encoding='utf-8') as f:
-            f.write(system_prompt)
-        print(f"📝 Default prompt file created at: {prompt_file}")
-
     # Combine texts with separator
-    separator = "|||"
     combined_text = separator.join(texts)
 
     # Get translation direction
@@ -188,7 +144,7 @@ def translate_batch(texts, source_lang, target_lang):
 
         # Handle case when number of translated parts doesn't match
         if len(translated_parts) != len(texts):
-            print(f"⚠️ Number of translated parts ({len(translated_parts)}) doesn't match number of original texts ({len(texts)})")
+            print(f"   ⚠️  Number of translated parts ({len(translated_parts)}) does not match number of original texts ({len(texts)})")
             # Ensure number of translated parts equals number of original texts
             if len(translated_parts) < len(texts):
                 translated_parts.extend(texts[len(translated_parts):])
@@ -227,7 +183,7 @@ def process_excel(input_path, source_lang, target_lang):
 
             # Loop through each sheet
             for sheet in wb.sheets:
-                print(f"📋 Processing sheet: {sheet.name}")
+                print(f"\n📋 Processing sheet: {sheet.name}")
 
                 # Collect data from cells that need translation
                 texts_to_translate = []
@@ -252,7 +208,7 @@ def process_excel(input_path, source_lang, target_lang):
                     shapes_count = shapes_collection.Count
 
                     if shapes_count > 0:
-                        print(f"📊 Sheet '{sheet.name}' has {shapes_count} shapes to check")
+                        print(f"   📊 Sheet '{sheet.name}' has {shapes_count} shapes to check")
 
                         # Process each shape by index (Excel COM API indexes from 1)
                         for i in range(1, shapes_count + 1):
@@ -343,7 +299,7 @@ def process_excel(input_path, source_lang, target_lang):
                     translated_batch = translate_batch(batch_texts, source_lang, target_lang)
 
                     # Update translated content
-                    print(f"   ✍️ Updating content for batch {current_batch_num}...")
+                    print(f"   ✍️  Updating content for batch {current_batch_num}...")
                     for j, ref in enumerate(batch_refs):
                         # Check if index j is within translated_batch
                         if j < len(translated_batch) and translated_batch[j] is not None:
@@ -446,7 +402,7 @@ def process_excel(input_path, source_lang, target_lang):
             # Just need to ensure app is closed
             if 'app' in locals() and app.pid: # Check if app exists and is still running
                  app.quit()
-                 print("   🔌 Excel application closed.")
+                 print("🧊 Excel application closed.")
 
         return output_path
 
@@ -489,8 +445,7 @@ def process_directory(input_dir, source_lang, target_lang):
         else:
             failed_files.append(os.path.basename(file_path))
 
-    print("\n--- Directory processing completed ---")
-    print(f"✅ Successful: {len(successful_files)} files")
+    print(f"\n✅ Successful: {len(successful_files)} files")
     if failed_files:
         print(f"❌ Failed: {len(failed_files)} files: {', '.join(failed_files)}")
 
@@ -537,4 +492,4 @@ if __name__ == "__main__":
     start_time = time.time()
     main()
     end_time = time.time()
-    print(f"\n⏱️ Total execution time: {end_time - start_time:.2f} seconds")
+    print(f"\n⏱️  Total execution time: {end_time - start_time:.2f} seconds")
