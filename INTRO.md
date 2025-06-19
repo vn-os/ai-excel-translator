@@ -49,12 +49,11 @@ AI Excel Translator là một công cụ dịch thuật thông minh được thi
 
 ### Screenshots
 
-![Snipaste_2025-06-15_15-36-41.jpg](demo/Snipaste_2025-06-15_15-36-41.jpg)
+##### English to Vietnamese
 
 ![Snipaste_2025-06-15_15-36-13.jpg](demo/Snipaste_2025-06-15_15-36-13.jpg)
 
+![Snipaste_2025-06-15_15-36-41.jpg](demo/Snipaste_2025-06-15_15-36-41.jpg)
+
 ![Snipaste_2025-06-15_15-34-05.jpg](demo/Snipaste_2025-06-15_15-34-05.jpg)
 
-![Snipaste_2025-06-15_15-33-00.jpg](demo/Snipaste_2025-06-15_15-33-00.jpg)
-
-![Snipaste_2025-06-15_15-31-59.jpg](demo/Snipaste_2025-06-15_15-31-59.jpg)

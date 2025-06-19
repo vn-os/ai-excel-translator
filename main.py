@@ -2,6 +2,7 @@ import os
 import time
 import re
 import glob
+import six
 import xlwings as xw
 from gooey import Gooey, GooeyParser
 from openai import OpenAI
