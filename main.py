@@ -74,12 +74,8 @@ For IT-specific terminology:
 - Keep file extensions and paths unchanged
 """
 
-# Initialize API client with Gemini (OpenAI compatible)
-client = OpenAI(
-    base_url=llm_api["url"],
-    api_key=llm_api["api_key"],
-)
-print(f"🤖 Using LLM model: '{llm_api['model']}' at '{llm_api['url']}'")
+# LLM API Client
+llm_client = None
 
 # Set API delay and batch size
 API_DELAY = 2  # Delay 2 seconds between API calls
@@ -125,8 +121,16 @@ def translate_batch(texts, source_lang, target_lang):
         user_prompt += llm_model_suffix
 
     try:
+        global llm_client
+        if not llm_client:
+            llm_client = OpenAI(
+                base_url=llm_api["url"],
+                api_key=llm_api["api_key"],
+            )
+            print(f"🤖 Using LLM model: '{llm_api['model']}' at '{llm_api['url']}'")
+
         # Call translation API
-        response = client.chat.completions.create(
+        response = llm_client.chat.completions.create(
             model=llm_api["model"], # Or "gemini-pro" or other suitable model
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -160,16 +164,14 @@ def translate_batch(texts, source_lang, target_lang):
         # Return original texts if translation fails
         return texts
 
-def process_excel(input_path, source_lang, target_lang):
+def process_excel(input_path, output_dir, source_lang, target_lang):
     """Process Excel file: read, translate and save with original format"""
     try:
         # Create output file path
         filename = os.path.basename(input_path)
         base_name, ext = os.path.splitext(filename)
 
-        # Create output directory at the same level as the script
-        project_dir = os.path.dirname(os.path.abspath(__file__))
-        output_dir = os.path.join(project_dir, "output")
+        # Use provided output_dir
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, f"{base_name}-{target_lang}{ext}")
 
@@ -413,7 +415,7 @@ def process_excel(input_path, source_lang, target_lang):
             app.quit()
         return None
 
-def process_directory(input_dir, source_lang, target_lang):
+def process_directory(input_dir, output_dir, source_lang, target_lang):
     """Process all Excel files in the input directory"""
     # Ensure directory path exists
     if not os.path.isdir(input_dir):
@@ -439,7 +441,7 @@ def process_directory(input_dir, source_lang, target_lang):
             print(f"   ⏩ Skipping temporary file: {os.path.basename(file_path)}")
             continue
 
-        output_file = process_excel(file_path, source_lang, target_lang)
+        output_file = process_excel(file_path, output_dir, source_lang, target_lang)
         if output_file:
             successful_files.append(os.path.basename(file_path))
         else:
@@ -455,28 +457,48 @@ def main():
     lang_help = ', '.join(f"{code}: {name}" for code, name in lang_map.items())
     
     parser = GooeyParser(description='Translate Excel files from input directory to output directory')
+    parser.add_argument('--input_dir', dest='input_dir', required=True,
+                        help='Input directory containing Excel files to translate (required)',
+                        widget='DirChooser')
+    parser.add_argument('--output_dir', dest='output_dir', required=False, default='output',
+                        help='Output directory for translated files (default: output folder in current directory)',
+                        widget='DirChooser')
     parser.add_argument('--from', dest='source_lang', choices=lang_map.keys(), required=True, default="ja",
                         help=f'Source language ({lang_help})')
     parser.add_argument('--to', dest='target_lang', choices=lang_map.keys(), required=True, default="en",
                         help=f'Target language ({lang_help})')
     args = parser.parse_args()
 
-    # Path to input directory (in current project directory)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    input_dir = os.path.join(script_dir, "input")
+    # Determine input directory
+    input_dir = args.input_dir
+    if not os.path.isabs(input_dir):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        input_dir = os.path.join(script_dir, input_dir)
 
     # Check if input directory exists
     if not os.path.exists(input_dir):
-         os.makedirs(input_dir)
-         print(f"📁 Created 'input' directory at: {input_dir}")
-         print("   Please place Excel files to translate in this directory.")
-         return # Stop to let user add files
+        os.makedirs(input_dir)
+        print(f"📁 Created input directory at: {input_dir}")
+        print("   Please place Excel files to translate in this directory.")
+        return # Stop to let user add files
+    print(f"📁 Input directory: '{input_dir}'")
+
+    # Determine output directory
+    output_dir = args.output_dir
+    if output_dir is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(script_dir, "output")
+    elif not os.path.isabs(output_dir):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(script_dir, output_dir)
 
     # Create output directory if it doesn't exist
-    output_dir = os.path.join(script_dir, "output")
     os.makedirs(output_dir, exist_ok=True)
-    print(f"📂 Output directory: {output_dir}")
+    print(f"📂 Output directory: '{output_dir}'")
 
+    print("")
+
+    # Determine source and target language
     source_lang = lang_map.get(args.source_lang)
     target_lang = lang_map.get(args.target_lang)
     if not source_lang or not target_lang:
@@ -486,11 +508,11 @@ def main():
     print(f"🎯 Translation direction: {source_lang} to {target_lang}")
 
     # Process all files in the input directory
-    process_directory(input_dir, args.source_lang, args.target_lang)
+    process_directory(input_dir, output_dir, args.source_lang, args.target_lang)
 
 if __name__ == "__main__":
     # Note: Running this script may take time depending on the number of files and text to translate
     start_time = time.time()
     main()
     end_time = time.time()
-    print(f"\n⏱️ Total execution time: {end_time - start_time:.2f} seconds")
+    print(f"\n⏱️ Total execution time: {end_time - start_time:.2f} seconds\n")
